@@ -80,13 +80,15 @@ Click **Sync from Chrome** to import your existing browser sessions. LLMux reads
 
 ### Homebrew (recommended)
 
+The easiest way to install. Homebrew handles the unsigned-app quarantine automatically.
+
 ```bash
 brew install charlesnchr/tap/llmux
 ```
 
 ### Download
 
-Grab the `.dmg` from the [Releases](https://github.com/charlesnchr/llmux/releases) page. Drag to Applications, then clear the quarantine flag (the app is unsigned):
+Grab the `.dmg` from the [Releases](https://github.com/charlesnchr/llmux/releases) page. Drag to Applications, then clear the quarantine flag (the app is unsigned — Homebrew does this for you):
 
 ```bash
 xattr -cr /Applications/LLMux.app
