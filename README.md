@@ -10,11 +10,7 @@ Multiplex your queries across ChatGPT, Claude, and Gemini in a single window —
 
 <br>
 
-
-https://github.com/user-attachments/assets/4ec20675-1049-4c3d-b1ef-8091d8bb3feb
-
-
-<img src="screenshots/query-response.png" alt="Three models responding to the same query" width="820">
+<img src="screenshots/demo.gif" alt="LLMux demo — querying three models at once" width="820">
 
 <br>
 
@@ -23,12 +19,6 @@ https://github.com/user-attachments/assets/4ec20675-1049-4c3d-b1ef-8091d8bb3feb
 </div>
 
 ---
-
-## What is LLMux
-
-LLMux is a lightweight Electron app that wraps ChatGPT, Claude, and Gemini in side-by-side panels. Type a query once, get three answers simultaneously. Or toggle down to a single model and use it as a focused daily driver.
-
-It remembers which models you have active, so new tabs inherit your last configuration. Combined with the Raycast extension, it becomes a keyboard-first LLM launcher: type your question anywhere, hit enter, and LLMux opens with all your models already working on it.
 
 ## Features
 
