@@ -102,9 +102,9 @@ function buildMenu() {
         { label: 'Command Palette', accelerator: 'CmdOrCtrl+K', click: () => mainWindow?.webContents.send('toggle-command-palette') },
         { label: 'Command Palette (Alt)', accelerator: 'CmdOrCtrl+P', visible: false, click: () => mainWindow?.webContents.send('toggle-command-palette') },
         { type: 'separator' },
-        { label: 'Toggle ChatGPT', accelerator: 'CmdOrCtrl+Shift+1', click: () => mainWindow?.webContents.send('toggle-platform', 'chatgpt') },
-        { label: 'Toggle Claude', accelerator: 'CmdOrCtrl+Shift+2', click: () => mainWindow?.webContents.send('toggle-platform', 'claude') },
-        { label: 'Toggle Gemini', accelerator: 'CmdOrCtrl+Shift+3', click: () => mainWindow?.webContents.send('toggle-platform', 'gemini') },
+        { label: 'Toggle ChatGPT', accelerator: 'Ctrl+Alt+1', click: () => mainWindow?.webContents.send('toggle-platform', 'chatgpt') },
+        { label: 'Toggle Claude', accelerator: 'Ctrl+Alt+2', click: () => mainWindow?.webContents.send('toggle-platform', 'claude') },
+        { label: 'Toggle Gemini', accelerator: 'Ctrl+Alt+3', click: () => mainWindow?.webContents.send('toggle-platform', 'gemini') },
         { type: 'separator' },
         { label: 'Reload All Panels', accelerator: 'CmdOrCtrl+Shift+R', click: () => mainWindow?.webContents.send('reload-all') },
         { label: 'Focus Input', accelerator: 'CmdOrCtrl+L', click: () => mainWindow?.webContents.send('focus-input') },
@@ -114,6 +114,28 @@ function buildMenu() {
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
+
+// ── Deep link protocol ──
+app.setAsDefaultProtocolClient('llmux');
+
+let pendingDeepLinkQuery = null;
+
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname === 'query' || parsed.pathname === '//query' || parsed.pathname === '/query') {
+      const text = parsed.searchParams.get('text');
+      if (text && mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
+        mainWindow.webContents.send('deep-link-query', text);
+      } else if (text) {
+        pendingDeepLinkQuery = text;
+      }
+    }
+  } catch {}
+});
 
 app.whenReady().then(() => {
   const chromeUA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
@@ -154,6 +176,19 @@ app.whenReady().then(() => {
       if (cmdOrCtrl && input.shift && input.key === 'r') {
         event.preventDefault();
         mainWindow?.webContents.send('reload-all');
+      }
+      // Ctrl+Option+1/2/3 for platform toggles
+      if (input.control && input.alt && input.key === '1') {
+        event.preventDefault();
+        mainWindow?.webContents.send('toggle-platform', 'chatgpt');
+      }
+      if (input.control && input.alt && input.key === '2') {
+        event.preventDefault();
+        mainWindow?.webContents.send('toggle-platform', 'claude');
+      }
+      if (input.control && input.alt && input.key === '3') {
+        event.preventDefault();
+        mainWindow?.webContents.send('toggle-platform', 'gemini');
       }
     });
   });
@@ -205,6 +240,14 @@ app.whenReady().then(() => {
 
   buildMenu();
   createWindow();
+
+  // Send any pending deep link query once the window is ready
+  mainWindow.webContents.on('did-finish-load', () => {
+    if (pendingDeepLinkQuery) {
+      mainWindow.webContents.send('deep-link-query', pendingDeepLinkQuery);
+      pendingDeepLinkQuery = null;
+    }
+  });
 });
 
 app.on('window-all-closed', () => {

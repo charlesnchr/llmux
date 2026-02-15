@@ -1,7 +1,7 @@
 {
-  "name": "llm-council",
-  "version": "1.0.0",
-  "description": "Query ChatGPT, Claude, and Gemini simultaneously",
+  "name": "llmux",
+  "version": "1.1.0",
+  "description": "Universal LLM gateway — query ChatGPT, Claude, and Gemini simultaneously",
   "main": "main.js",
   "author": "Charles Nicklas",
   "license": "MIT",
@@ -12,18 +12,24 @@
     "dist:zip": "electron-builder --mac zip"
   },
   "build": {
-    "appId": "com.charlesnchr.llm-council",
-    "productName": "LLM Council",
+    "appId": "com.charlesnchr.llmux",
+    "productName": "LLMux",
     "mac": {
       "category": "public.app-category.developer-tools",
       "icon": "assets/icon.icns",
       "target": [
         "dmg",
         "zip"
+      ],
+      "protocols": [
+        {
+          "name": "LLMux",
+          "schemes": ["llmux"]
+        }
       ]
     },
     "dmg": {
-      "title": "LLM Council",
+      "title": "LLMux",
       "iconSize": 80,
       "contents": [
         { "x": 130, "y": 220 },

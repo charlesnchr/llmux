@@ -123,6 +123,7 @@ let activeTabId = null;
 let nextTabId = 0;
 const toggleEls = {}; // platform -> toggle button element
 const titleDebounceTimers = {}; // tabId -> timeout
+let lastEnabledPlatforms = { chatgpt: true, claude: true, gemini: true };
 
 function getActiveTab() {
   return tabs.find(t => t.id === activeTabId) || null;
@@ -182,7 +183,7 @@ function createTab(name = 'New Chat') {
     webviews: {},
     statusEls: {},
     panels: {},
-    enabledPlatforms: { chatgpt: true, claude: true, gemini: true },
+    enabledPlatforms: { ...lastEnabledPlatforms },
     autoTitles: {},
     userRenamed: false,
     querySent: false,
@@ -401,6 +402,7 @@ function togglePlatform(platform) {
   if (enabled[platform] && !otherEnabled) return;
 
   enabled[platform] = !enabled[platform];
+  lastEnabledPlatforms = { ...enabled };
   updateTogglesUI();
   updatePanelVisibility();
 }
@@ -444,6 +446,7 @@ function showOnlyPlatform(platform) {
   for (const p of Object.keys(PLATFORMS)) {
     tab.enabledPlatforms[p] = (p === platform);
   }
+  lastEnabledPlatforms = { ...tab.enabledPlatforms };
   updateTogglesUI();
   updatePanelVisibility();
 }
@@ -454,6 +457,7 @@ function showAllPlatforms() {
   for (const p of Object.keys(PLATFORMS)) {
     tab.enabledPlatforms[p] = true;
   }
+  lastEnabledPlatforms = { ...tab.enabledPlatforms };
   updateTogglesUI();
   updatePanelVisibility();
 }
@@ -569,9 +573,9 @@ function getCommands() {
     { id: 'rename-tab', label: 'Rename Tab', category: 'Tabs', action: () => enterRenameMode() },
 
     // Platforms
-    { id: 'toggle-chatgpt', label: 'Toggle ChatGPT', category: 'Platforms', shortcut: '\u2318\u21e71', action: () => togglePlatform('chatgpt') },
-    { id: 'toggle-claude', label: 'Toggle Claude', category: 'Platforms', shortcut: '\u2318\u21e72', action: () => togglePlatform('claude') },
-    { id: 'toggle-gemini', label: 'Toggle Gemini', category: 'Platforms', shortcut: '\u2318\u21e73', action: () => togglePlatform('gemini') },
+    { id: 'toggle-chatgpt', label: 'Toggle ChatGPT', category: 'Platforms', shortcut: '\u2303\u2325 1', action: () => togglePlatform('chatgpt') },
+    { id: 'toggle-claude', label: 'Toggle Claude', category: 'Platforms', shortcut: '\u2303\u2325 2', action: () => togglePlatform('claude') },
+    { id: 'toggle-gemini', label: 'Toggle Gemini', category: 'Platforms', shortcut: '\u2303\u2325 3', action: () => togglePlatform('gemini') },
     { id: 'show-only-chatgpt', label: 'Show Only ChatGPT', category: 'Platforms', action: () => showOnlyPlatform('chatgpt') },
     { id: 'show-only-claude', label: 'Show Only Claude', category: 'Platforms', action: () => showOnlyPlatform('claude') },
     { id: 'show-only-gemini', label: 'Show Only Gemini', category: 'Platforms', action: () => showOnlyPlatform('gemini') },
@@ -963,6 +967,12 @@ document.addEventListener('DOMContentLoaded', () => {
   ipcRenderer.on('toggle-platform', (_e, platform) => togglePlatform(platform));
   ipcRenderer.on('reload-all', () => reloadAllPanels());
   ipcRenderer.on('focus-input', () => input.focus());
+
+  ipcRenderer.on('deep-link-query', (_e, query) => {
+    const tab = createTab();
+    // Wait briefly for webviews to initialize
+    setTimeout(() => sendQueryToActiveTab(query), 2000);
+  });
 
   input.focus();
 });
