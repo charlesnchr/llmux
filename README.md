@@ -89,7 +89,7 @@ brew install charlesnchr/tap/llmux
 Grab the `.dmg` from the [Releases](https://github.com/charlesnchr/llmux/releases) page. Drag to Applications, then clear the quarantine flag (the app is unsigned):
 
 ```bash
-xattr -c /Applications/LLMux.app
+xattr -cr /Applications/LLMux.app
 ```
 
 ### From source
