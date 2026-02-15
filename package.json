@@ -1,6 +1,6 @@
 {
   "name": "llmux",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Universal LLM gateway — query ChatGPT, Claude, and Gemini simultaneously",
   "main": "main.js",
   "author": "Charles Nicklas",
