@@ -76,7 +76,11 @@ Click **Sync from Chrome** and the app imports your existing Chrome sessions —
 
 ### Download the app (recommended)
 
-Grab the latest `.dmg` from the [Releases](https://github.com/charlesnchr/llm-council/releases) page. Open it, drag **LLM Council** to Applications, and launch.
+Grab the latest `.dmg` from the [Releases](https://github.com/charlesnchr/llm-council/releases) page. Open it, drag **LLM Council** to Applications, then clear the quarantine flag (the app is unsigned):
+
+```bash
+xattr -c /Applications/LLM\ Council.app
+```
 
 ### Or run from source
 
