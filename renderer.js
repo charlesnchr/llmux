@@ -143,11 +143,21 @@ const TITLE_PREFIXES = [
   /^Google Gemini\s*[-–—:]\s*/i,
 ];
 
+const TITLE_SUFFIXES = [
+  /\s*[-–—|]\s*Claude(\.ai)?$/i,
+  /\s*[-–—|]\s*ChatGPT$/i,
+  /\s*[-–—|]\s*Gemini$/i,
+  /\s*[-–—|]\s*Google Gemini$/i,
+];
+
 function cleanTitle(platform, rawTitle) {
   if (!rawTitle) return null;
   let title = rawTitle.trim();
 
   for (const re of TITLE_PREFIXES) {
+    title = title.replace(re, '');
+  }
+  for (const re of TITLE_SUFFIXES) {
     title = title.replace(re, '');
   }
   title = title.trim();
@@ -168,6 +178,13 @@ function deriveAutoName(tab) {
 
 function maybeAutoRename(tab) {
   if (tab.userRenamed || !tab.querySent) return;
+  // Only auto-rename once the highest-priority platform with an enabled
+  // webview has produced a title, so faster lower-priority platforms
+  // (e.g. Gemini) don't flash their name before Claude/ChatGPT respond.
+  const priorities = ['claude', 'chatgpt', 'gemini'];
+  const topEnabled = priorities.find(p => tab.enabledPlatforms[p]);
+  if (topEnabled && !tab.autoTitles[topEnabled]) return;
+
   const name = deriveAutoName(tab);
   if (name) {
     tab.name = name.length > 40 ? name.slice(0, 37) + '...' : name;
@@ -573,9 +590,9 @@ function getCommands() {
     { id: 'rename-tab', label: 'Rename Tab', category: 'Tabs', action: () => enterRenameMode() },
 
     // Platforms
-    { id: 'toggle-chatgpt', label: 'Toggle ChatGPT', category: 'Platforms', shortcut: '\u2303\u2325 1', action: () => togglePlatform('chatgpt') },
-    { id: 'toggle-claude', label: 'Toggle Claude', category: 'Platforms', shortcut: '\u2303\u2325 2', action: () => togglePlatform('claude') },
-    { id: 'toggle-gemini', label: 'Toggle Gemini', category: 'Platforms', shortcut: '\u2303\u2325 3', action: () => togglePlatform('gemini') },
+    { id: 'toggle-chatgpt', label: 'Toggle ChatGPT', category: 'Platforms', shortcut: '\u2318\u21e7 1', action: () => togglePlatform('chatgpt') },
+    { id: 'toggle-claude', label: 'Toggle Claude', category: 'Platforms', shortcut: '\u2318\u21e7 2', action: () => togglePlatform('claude') },
+    { id: 'toggle-gemini', label: 'Toggle Gemini', category: 'Platforms', shortcut: '\u2318\u21e7 3', action: () => togglePlatform('gemini') },
     { id: 'show-only-chatgpt', label: 'Show Only ChatGPT', category: 'Platforms', action: () => showOnlyPlatform('chatgpt') },
     { id: 'show-only-claude', label: 'Show Only Claude', category: 'Platforms', action: () => showOnlyPlatform('claude') },
     { id: 'show-only-gemini', label: 'Show Only Gemini', category: 'Platforms', action: () => showOnlyPlatform('gemini') },
@@ -907,6 +924,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Chrome cookie sync button ──
   syncBtn.addEventListener('click', () => syncCookies());
+
+  // ── Theme switcher ──
+  const THEME_CYCLE = ['system', 'light', 'dark'];
+  const THEME_LABELS = { system: 'System', light: 'Light', dark: 'Dark' };
+  const themeBtn = document.getElementById('btn-theme');
+
+  function applyTheme(theme) {
+    const root = document.documentElement;
+    root.classList.remove('light', 'dark');
+    if (theme === 'light' || theme === 'dark') {
+      root.classList.add(theme);
+    }
+    localStorage.setItem('llmux-theme', theme);
+    themeBtn.textContent = THEME_LABELS[theme];
+  }
+
+  themeBtn.addEventListener('click', () => {
+    const current = localStorage.getItem('llmux-theme') || 'system';
+    const next = THEME_CYCLE[(THEME_CYCLE.indexOf(current) + 1) % THEME_CYCLE.length];
+    applyTheme(next);
+  });
+
+  applyTheme(localStorage.getItem('llmux-theme') || 'system');
 
   // ── Command palette keyboard handling ──
   document.getElementById('palette-backdrop').addEventListener('click', () => closePalette());

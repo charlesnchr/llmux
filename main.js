@@ -100,11 +100,12 @@ function buildMenu() {
       label: 'Tools',
       submenu: [
         { label: 'Command Palette', accelerator: 'CmdOrCtrl+K', click: () => mainWindow?.webContents.send('toggle-command-palette') },
-        { label: 'Command Palette (Alt)', accelerator: 'CmdOrCtrl+P', visible: false, click: () => mainWindow?.webContents.send('toggle-command-palette') },
+        { label: 'Command Palette', accelerator: 'CmdOrCtrl+/', visible: false, click: () => mainWindow?.webContents.send('toggle-command-palette') },
+        { label: 'Command Palette', accelerator: 'CmdOrCtrl+P', visible: false, click: () => mainWindow?.webContents.send('toggle-command-palette') },
         { type: 'separator' },
-        { label: 'Toggle ChatGPT', accelerator: 'Ctrl+Alt+1', click: () => mainWindow?.webContents.send('toggle-platform', 'chatgpt') },
-        { label: 'Toggle Claude', accelerator: 'Ctrl+Alt+2', click: () => mainWindow?.webContents.send('toggle-platform', 'claude') },
-        { label: 'Toggle Gemini', accelerator: 'Ctrl+Alt+3', click: () => mainWindow?.webContents.send('toggle-platform', 'gemini') },
+        { label: 'Toggle ChatGPT', accelerator: 'CmdOrCtrl+Shift+1', click: () => mainWindow?.webContents.send('toggle-platform', 'chatgpt') },
+        { label: 'Toggle Claude', accelerator: 'CmdOrCtrl+Shift+2', click: () => mainWindow?.webContents.send('toggle-platform', 'claude') },
+        { label: 'Toggle Gemini', accelerator: 'CmdOrCtrl+Shift+3', click: () => mainWindow?.webContents.send('toggle-platform', 'gemini') },
         { type: 'separator' },
         { label: 'Reload All Panels', accelerator: 'CmdOrCtrl+Shift+R', click: () => mainWindow?.webContents.send('reload-all') },
         { label: 'Focus Input', accelerator: 'CmdOrCtrl+L', click: () => mainWindow?.webContents.send('focus-input') },
@@ -165,7 +166,7 @@ app.whenReady().then(() => {
       }
 
       // Intercept palette/tool shortcuts before webviews can hijack them
-      if (cmdOrCtrl && input.key === 'k') {
+      if (cmdOrCtrl && (input.key === 'k' || input.key === '/')) {
         event.preventDefault();
         mainWindow?.webContents.send('toggle-command-palette');
       }
@@ -177,18 +178,24 @@ app.whenReady().then(() => {
         event.preventDefault();
         mainWindow?.webContents.send('reload-all');
       }
-      // Ctrl+Option+1/2/3 for platform toggles
-      if (input.control && input.alt && input.key === '1') {
+      // Cmd+Shift+1/2/3 for platform toggles (must check before Cmd+Number)
+      if (cmdOrCtrl && input.shift && input.key === '1') {
         event.preventDefault();
         mainWindow?.webContents.send('toggle-platform', 'chatgpt');
       }
-      if (input.control && input.alt && input.key === '2') {
+      if (cmdOrCtrl && input.shift && input.key === '2') {
         event.preventDefault();
         mainWindow?.webContents.send('toggle-platform', 'claude');
       }
-      if (input.control && input.alt && input.key === '3') {
+      if (cmdOrCtrl && input.shift && input.key === '3') {
         event.preventDefault();
         mainWindow?.webContents.send('toggle-platform', 'gemini');
+      }
+
+      // Cmd+Number to jump to tab (before webviews can swallow the event)
+      if (cmdOrCtrl && !input.shift && !input.alt && /^[1-9]$/.test(input.key)) {
+        event.preventDefault();
+        mainWindow?.webContents.send('goto-tab', parseInt(input.key, 10) - 1);
       }
     });
   });

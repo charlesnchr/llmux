@@ -32,8 +32,10 @@
       --gemini-brand: #4285f4;
     }
 
+    /* System preference: light */
     @media (prefers-color-scheme: light) {
-      :root {
+      :root:not(.dark) {
+        color-scheme: light;
         --bg-app: #ffffff;
         --bg-surface: #f6f8fa;
         --bg-inset: #eef1f5;
@@ -57,61 +59,103 @@
       }
     }
 
+    /* Manual override: light */
+    :root.light {
+      color-scheme: light;
+      --bg-app: #ffffff;
+      --bg-surface: #f6f8fa;
+      --bg-inset: #eef1f5;
+      --bg-overlay: #d8dee4;
+      --border: #d0d7de;
+      --border-subtle: #e1e4e8;
+      --text: #1f2328;
+      --text-secondary: #656d76;
+      --text-muted: #8b949e;
+      --accent: #0969da;
+      --accent-subtle: rgba(9, 105, 218, 0.06);
+      --accent-border: rgba(9, 105, 218, 0.2);
+      --success: #1a7f37;
+      --error: #cf222e;
+      --chatgpt-text: #0d7d56;
+      --chatgpt-bg: rgba(16, 163, 127, 0.06);
+      --claude-text: #a85835;
+      --claude-bg: rgba(217, 119, 87, 0.06);
+      --gemini-text: #1a56c4;
+      --gemini-bg: rgba(66, 133, 244, 0.06);
+    }
+
     /* ═══ Reset ═══ */
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       background: var(--bg-app);
       color: var(--text);
-      font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', 'Menlo', monospace;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       height: 100vh;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      -webkit-app-region: drag;
     }
 
-    /* ═══ Header ═══ */
-    .header {
+    /* ═══ Tab Bar (doubles as title bar) ═══ */
+    .tab-bar {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      padding: 6px 16px;
-      padding-top: 34px;
-      background: var(--bg-app);
-      border-bottom: 1px solid var(--border-subtle);
+      align-items: flex-end;
+      background: var(--bg-inset);
+      padding: 0 8px 0 78px; /* left padding for macOS traffic lights */
+      padding-top: 8px;
+      gap: 0;
       flex-shrink: 0;
+      overflow-x: auto;
       -webkit-app-region: drag;
+      position: relative;
     }
 
-    .header h1 {
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-    }
-
-    .header h1 span { color: var(--accent); }
-
-    .header-actions {
+    .tab-bar::after {
+      content: '';
       position: absolute;
-      right: 16px;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: var(--border-subtle);
+      z-index: 0;
+    }
+
+    .tab-bar-actions {
       display: flex;
-      gap: 8px;
       align-items: center;
+      gap: 8px;
+      margin-left: auto;
+      margin-bottom: 5px;
+      flex-shrink: 0;
       -webkit-app-region: no-drag;
     }
+
+    .btn-theme {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-theme:hover { background: var(--bg-overlay); color: var(--text); border-color: var(--text-muted); }
 
     .btn-sync {
       background: var(--accent-subtle);
       border: 1px solid var(--accent-border);
       color: var(--accent);
-      padding: 4px 10px;
-      border-radius: 3px;
+      padding: 3px 8px;
+      border-radius: 4px;
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 500;
       cursor: pointer;
       font-family: inherit;
       transition: background 0.2s, border-color 0.2s;
@@ -126,23 +170,10 @@
     .sync-status {
       font-size: 10px;
       color: var(--text-muted);
-      max-width: 220px;
+      max-width: 180px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-    }
-
-    /* ═══ Tab Bar ═══ */
-    .tab-bar {
-      display: flex;
-      align-items: stretch;
-      background: var(--bg-inset);
-      border-bottom: 1px solid var(--border-subtle);
-      padding: 3px 6px 0 6px;
-      gap: 1px;
-      flex-shrink: 0;
-      overflow-x: auto;
-      -webkit-app-region: no-drag;
     }
 
     .tab-bar::-webkit-scrollbar { height: 0; }
@@ -150,28 +181,36 @@
     .tab {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 4px 8px;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      border-bottom: 1px solid var(--border-subtle);
-      border-radius: 3px 3px 0 0;
+      gap: 8px;
+      padding: 7px 14px;
+      background: transparent;
+      border: 1px solid transparent;
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
       color: var(--text-muted);
-      font-size: 11px;
+      font-size: 12px;
       cursor: pointer;
-      max-width: 200px;
-      min-width: 0;
+      max-width: 260px;
+      min-width: 80px;
+      width: max-content;
       transition: background 0.15s, color 0.15s;
       flex-shrink: 0;
+      position: relative;
+      z-index: 0;
+      margin-bottom: 0;
+      -webkit-app-region: no-drag;
     }
 
-    .tab:hover { color: var(--text-secondary); }
+    .tab:hover {
+      background: var(--bg-overlay);
+      color: var(--text-secondary);
+    }
 
     .tab.active {
       background: var(--bg-app);
       color: var(--text);
-      border-color: var(--border);
-      border-bottom-color: var(--bg-app);
+      border-color: var(--border-subtle);
+      z-index: 1;
     }
 
     .tab-label {
@@ -183,21 +222,25 @@
 
     .tab-close {
       flex-shrink: 0;
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
       display: flex;
       align-items: center;
       justify-content: center;
       border: none;
       background: none;
       color: var(--text-muted);
-      font-size: 13px;
+      font-size: 14px;
       cursor: pointer;
-      border-radius: 3px;
+      border-radius: 4px;
       line-height: 1;
       padding: 0;
-      transition: background 0.15s, color 0.15s;
+      opacity: 0;
+      transition: background 0.15s, color 0.15s, opacity 0.15s;
     }
+
+    .tab:hover .tab-close,
+    .tab.active .tab-close { opacity: 1; }
 
     .tab-close:hover { background: rgba(248, 81, 73, 0.2); color: var(--error); }
 
@@ -205,17 +248,19 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 24px;
-      height: 24px;
+      width: 28px;
+      height: 28px;
       border: none;
       background: none;
       color: var(--text-muted);
-      font-size: 15px;
+      font-size: 16px;
       cursor: pointer;
-      border-radius: 3px;
+      border-radius: 8px;
       flex-shrink: 0;
-      margin-left: 2px;
+      margin-left: 4px;
+      margin-bottom: 2px;
       transition: background 0.15s, color 0.15s;
+      -webkit-app-region: no-drag;
     }
 
     .tab-add:hover { background: var(--bg-overlay); color: var(--text); }
@@ -225,7 +270,6 @@
       flex: 1;
       position: relative;
       min-height: 0;
-      -webkit-app-region: no-drag;
     }
 
     .tab-content {
@@ -287,6 +331,7 @@
       padding: 4px 10px;
       font-weight: 600;
       font-size: 11px;
+      font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', 'Menlo', monospace;
       display: flex;
       align-items: center;
       gap: 6px;
@@ -419,10 +464,10 @@
       flex: 1;
       background: var(--bg-app);
       border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 8px 12px;
+      border-radius: 8px;
+      padding: 10px 14px;
       color: var(--text);
-      font-size: 13px;
+      font-size: 14px;
       font-family: inherit;
       outline: none;
       resize: none;
@@ -573,16 +618,13 @@
 </head>
 <body>
 
-  <div class="header">
-    <h1><span>LLM</span>ux</h1>
-    <div class="header-actions">
-      <span class="sync-status" id="sync-status"></span>
-      <button class="btn-sync" id="btn-sync" title="Import cookies from Chrome">Sync from Chrome</button>
-    </div>
-  </div>
-
   <div class="tab-bar" id="tab-bar">
     <button class="tab-add" id="btn-tab-add" title="New Tab (Cmd+T)">+</button>
+    <div class="tab-bar-actions">
+      <span class="sync-status" id="sync-status"></span>
+      <button class="btn-theme" id="btn-theme" title="Toggle theme"></button>
+      <button class="btn-sync" id="btn-sync" title="Import cookies from Chrome">Sync from Chrome</button>
+    </div>
   </div>
 
   <div class="panels-container" id="panels-container"></div>
