@@ -1128,6 +1128,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     for (const tab of tabs) {
       if (tab.userRenamed || !tab.querySent) continue;
       
+      // Stop polling once the tab has a valid, non-generic name
+      if (tab.name !== 'New Chat' && !GENERIC_TITLES.has(tab.name.toLowerCase()) && !tab.name.toLowerCase().includes('untitled')) {
+        continue;
+      }
+      
       for (const [platform, wv] of Object.entries(tab.webviews)) {
         if (tab.enabledPlatforms[platform] && !wv.isLoading()) {
           try {
