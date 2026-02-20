@@ -5,13 +5,40 @@ const { ipcRenderer } = require('electron');
 // ═══════════════════════════════════════════════════════════════
 
 let lastEnabledPlatforms = { chatgpt: true, claude: true, gemini: true };
+let panelWidths = {}; // { chatgpt: '400px', ... }
+let savedTabs = [];
+let initialLoad = true;
 
 async function loadConfig() {
   lastEnabledPlatforms = await ipcRenderer.invoke('store-get', 'enabledPlatforms', { chatgpt: true, claude: true, gemini: true });
+  panelWidths = await ipcRenderer.invoke('store-get', 'panelWidths', {});
+  savedTabs = await ipcRenderer.invoke('store-get', 'savedTabs', []);
 }
 
 function saveConfig() {
   ipcRenderer.send('store-set', 'enabledPlatforms', lastEnabledPlatforms);
+}
+
+function saveTabs() {
+  if (initialLoad) return;
+  const tabsToSave = tabs.map(t => {
+    const urls = {};
+    for (const p of Object.keys(PLATFORMS)) {
+      if (t.webviews[p]) {
+        try { urls[p] = t.webviews[p].getURL(); } catch (e) {}
+      }
+    }
+    return {
+      name: t.name,
+      urls,
+      enabledPlatforms: t.enabledPlatforms,
+      userRenamed: t.userRenamed,
+      querySent: t.querySent
+    };
+  });
+  ipcRenderer.send('store-set', 'savedTabs', tabsToSave);
+  const idx = tabs.findIndex(t => t.id === activeTabId);
+  ipcRenderer.send('store-set', 'activeTabIndex', idx >= 0 ? idx : 0);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -206,18 +233,18 @@ function maybeAutoRename(tab) {
   }
 }
 
-function createTab(name = 'New Chat') {
+function createTab(name = 'New Chat', initialData = null) {
   const id = ++nextTabId;
   const tab = {
     id,
-    name,
+    name: initialData ? initialData.name : name,
     webviews: {},
     statusEls: {},
     panels: {},
-    enabledPlatforms: { ...lastEnabledPlatforms },
+    enabledPlatforms: initialData ? { ...initialData.enabledPlatforms } : { ...lastEnabledPlatforms },
     autoTitles: {},
-    userRenamed: false,
-    querySent: false,
+    userRenamed: initialData ? initialData.userRenamed : false,
+    querySent: initialData ? initialData.querySent : false,
     container: null
   };
 
@@ -234,6 +261,9 @@ function createTab(name = 'New Chat') {
 
     const panel = document.createElement('div');
     panel.className = 'panel';
+    if (panelWidths[platform]) {
+      panel.style.flex = panelWidths[platform];
+    }
 
     const header = document.createElement('div');
     header.className = `panel-header ${cfg.css}`;
@@ -260,7 +290,7 @@ function createTab(name = 'New Chat') {
     header.append(dot, labelNode, status, reloadBtn, devtoolsBtn);
 
     const wv = document.createElement('webview');
-    wv.src = cfg.url;
+    wv.src = (initialData && initialData.urls && initialData.urls[platform]) ? initialData.urls[platform] : cfg.url;
     wv.setAttribute('partition', `persist:${platform}`);
     wv.setAttribute('allowpopups', '');
 
@@ -274,6 +304,10 @@ function createTab(name = 'New Chat') {
     wv.addEventListener('did-finish-load', () => { status.textContent = 'Ready'; status.className = 'status'; });
     wv.addEventListener('did-fail-load', (e) => { if (e.errorCode !== -3) { status.textContent = 'Load failed'; status.className = 'status error'; } });
     wv.addEventListener('dom-ready', () => { status.textContent = 'Ready'; status.className = 'status'; });
+
+    // Save tabs on navigation to persist chat history URL
+    wv.addEventListener('did-navigate', () => saveTabs());
+    wv.addEventListener('did-navigate-in-page', () => saveTabs());
 
     // Auto-naming: listen for page title updates
     wv.addEventListener('page-title-updated', (e) => {
@@ -311,6 +345,7 @@ function createTab(name = 'New Chat') {
 
   switchToTab(id);
   renderTabBar();
+  saveTabs();
   return tab;
 }
 
@@ -322,6 +357,7 @@ function switchToTab(id) {
   updateTogglesUI();
   updatePanelVisibility();
   renderTabBar();
+  saveTabs();
 }
 
 function closeTab(id) {
@@ -343,6 +379,7 @@ function closeTab(id) {
   } else {
     renderTabBar();
   }
+  saveTabs();
 }
 
 function resetCurrentTab() {
@@ -356,6 +393,7 @@ function resetCurrentTab() {
   tab.userRenamed = false;
   tab.querySent = false;
   renderTabBar();
+  saveTabs();
 }
 
 function renameTab(id, name) {
@@ -363,6 +401,7 @@ function renameTab(id, name) {
   if (tab) {
     tab.name = name.length > 40 ? name.slice(0, 37) + '...' : name;
     renderTabBar();
+    saveTabs();
   }
 }
 
@@ -437,6 +476,7 @@ function togglePlatform(platform) {
   saveConfig();
   updateTogglesUI();
   updatePanelVisibility();
+  saveTabs();
 }
 
 function updateTogglesUI() {
@@ -523,6 +563,8 @@ function resetPanelWidths() {
   for (const panel of Object.values(tab.panels)) {
     panel.style.flex = '';
   }
+  panelWidths = {};
+  ipcRenderer.send('store-set', 'panelWidths', panelWidths);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -572,6 +614,10 @@ function initResizeHandle(handle, tab) {
       document.getElementById('resize-overlay')?.remove();
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
+      
+      panelWidths[leftPlatform] = leftPanel.style.flex;
+      panelWidths[rightPlatform] = rightPanel.style.flex;
+      ipcRenderer.send('store-set', 'panelWidths', panelWidths);
     };
 
     document.addEventListener('mousemove', onMove);
@@ -584,6 +630,10 @@ function initResizeHandle(handle, tab) {
     const rightPlatform = handle.dataset.rightPlatform;
     tab.panels[leftPlatform].style.flex = '';
     tab.panels[rightPlatform].style.flex = '';
+    
+    delete panelWidths[leftPlatform];
+    delete panelWidths[rightPlatform];
+    ipcRenderer.send('store-set', 'panelWidths', panelWidths);
   });
 }
 
@@ -914,7 +964,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   const syncBtn = document.getElementById('btn-sync');
 
   initToggles();
-  createTab();
+  
+  if (savedTabs && savedTabs.length > 0) {
+    for (const tabData of savedTabs) {
+      createTab(tabData.name, tabData);
+    }
+    const activeIdx = await ipcRenderer.invoke('store-get', 'activeTabIndex', 0);
+    if (activeIdx >= 0 && activeIdx < tabs.length) {
+      switchToTab(tabs[activeIdx].id);
+    }
+  } else {
+    createTab();
+  }
+  
+  initialLoad = false;
 
   document.getElementById('btn-tab-add').addEventListener('click', () => createTab());
 

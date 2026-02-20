@@ -14,10 +14,13 @@ const DOMAIN_MAP = {
 
 function createWindow() {
   const isDark = nativeTheme.shouldUseDarkColors;
+  const windowState = store.get('windowState', { width: 1920, height: 1080 });
 
   mainWindow = new BrowserWindow({
-    width: 1920,
-    height: 1080,
+    x: windowState.x,
+    y: windowState.y,
+    width: windowState.width,
+    height: windowState.height,
     webPreferences: {
       webviewTag: true,
       nodeIntegration: true,
@@ -27,14 +30,31 @@ function createWindow() {
     backgroundColor: isDark ? '#0d1117' : '#ffffff'
   });
 
+  if (windowState.isMaximized) {
+    mainWindow.maximize();
+  }
+
   mainWindow.loadFile('index.html');
-  mainWindow.maximize();
 
   // Update background on theme change
   nativeTheme.on('updated', () => {
     const bg = nativeTheme.shouldUseDarkColors ? '#0d1117' : '#ffffff';
     mainWindow.setBackgroundColor(bg);
   });
+
+  const saveBounds = () => {
+    if (!mainWindow.isMaximized() && !mainWindow.isMinimized()) {
+      store.set('windowState', {
+        ...mainWindow.getBounds(),
+        isMaximized: mainWindow.isMaximized()
+      });
+    }
+  };
+
+  mainWindow.on('resize', saveBounds);
+  mainWindow.on('move', saveBounds);
+  mainWindow.on('maximize', () => store.set('windowState.isMaximized', true));
+  mainWindow.on('unmaximize', () => store.set('windowState.isMaximized', false));
 }
 
 function buildMenu() {
