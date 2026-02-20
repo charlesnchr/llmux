@@ -179,6 +179,10 @@ app.whenReady().then(() => {
         mainWindow?.webContents.send('reload-all');
       }
       // Cmd+Shift+1/2/3 for platform toggles (must check before Cmd+Number)
+      if (input.key === 'Escape' && input.shift) {
+        event.preventDefault();
+        mainWindow?.webContents.send('focus-leftmost-app');
+      }
       if (cmdOrCtrl && input.shift && input.key === '1') {
         event.preventDefault();
         mainWindow?.webContents.send('toggle-platform', 'chatgpt');

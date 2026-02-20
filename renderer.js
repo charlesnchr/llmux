@@ -152,7 +152,8 @@ const TITLE_SUFFIXES = [
 
 function cleanTitle(platform, rawTitle) {
   if (!rawTitle) return null;
-  let title = rawTitle.trim();
+  // Remove zero-width characters and LRM/RLM marks (fixes Gemini titles)
+  let title = rawTitle.replace(/[\u200B-\u200D\uFEFF\u200E\u200F\u202A-\u202E]/g, '').trim();
 
   for (const re of TITLE_PREFIXES) {
     title = title.replace(re, '');
@@ -1007,6 +1008,16 @@ document.addEventListener('DOMContentLoaded', () => {
   ipcRenderer.on('toggle-platform', (_e, platform) => togglePlatform(platform));
   ipcRenderer.on('reload-all', () => reloadAllPanels());
   ipcRenderer.on('focus-input', () => input.focus());
+  ipcRenderer.on('focus-leftmost-app', () => {
+    const tab = getActiveTab();
+    if (!tab) return;
+    for (const platform of Object.keys(PLATFORMS)) {
+      if (tab.enabledPlatforms[platform] && tab.webviews[platform]) {
+        tab.webviews[platform].focus();
+        break;
+      }
+    }
+  });
 
   ipcRenderer.on('deep-link-query', (_e, query) => {
     const tab = createTab();
