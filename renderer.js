@@ -219,18 +219,14 @@ function deriveAutoName(tab) {
 
 function maybeAutoRename(tab) {
   if (tab.userRenamed || !tab.querySent) return;
-  // Only auto-rename once the highest-priority platform with an enabled
-  // webview has produced a title, so faster lower-priority platforms
-  // (e.g. Gemini) don't flash their name before Claude/ChatGPT respond.
-  const priorities = ['claude', 'chatgpt', 'gemini'];
-  const topEnabled = priorities.find(p => tab.enabledPlatforms[p]);
-  if (topEnabled && !tab.autoTitles[topEnabled]) return;
 
   const name = deriveAutoName(tab);
   if (name) {
     tab.name = name.length > 40 ? name.slice(0, 37) + '...' : name;
     renderTabBar();
+    saveTabs();
   }
+}
 }
 
 function createTab(name = 'New Chat', initialData = null) {
@@ -303,7 +299,27 @@ function createTab(name = 'New Chat', initialData = null) {
     wv.addEventListener('did-stop-loading', () => { status.textContent = 'Ready'; status.className = 'status'; });
     wv.addEventListener('did-finish-load', () => { status.textContent = 'Ready'; status.className = 'status'; });
     wv.addEventListener('did-fail-load', (e) => { if (e.errorCode !== -3) { status.textContent = 'Load failed'; status.className = 'status error'; } });
-    wv.addEventListener('dom-ready', () => { status.textContent = 'Ready'; status.className = 'status'; });
+    wv.addEventListener('dom-ready', () => { status.textContent = 'Ready'; status.className = 'status'; 
+
+    if (platform === 'gemini') {
+      wv.executeJavaScript(`
+        if (!window.__geminiTitleObserver) {
+          window.__geminiTitleObserver = new MutationObserver(() => {
+            const el = document.querySelector('div[data-test-id="conversation"].selected .conversation-title') || document.querySelector('.conversation-title');
+            if (el && el.textContent) {
+              const newTitle = el.textContent.trim();
+              if (window.__lastGeminiTitle !== newTitle && newTitle !== 'New chat') {
+                window.__lastGeminiTitle = newTitle;
+                document.title = newTitle + ' - Gemini';
+              }
+            }
+          });
+          window.__geminiTitleObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
+        }
+      `).catch(() => {});
+    }
+
+    });
 
     // Save tabs on navigation to persist chat history URL
     wv.addEventListener('did-navigate', () => saveTabs());
